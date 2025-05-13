@@ -1,4 +1,28 @@
 # Created by venv; see https://docs.python.org/3/library/venv.html
 
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env/
+
+# Python environment config
+pyvenv.cfg
+
+# Environment variables
 .env
+
+# IDE/specific tool files
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Dependency directories
 Lib/
+Include/
