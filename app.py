@@ -1,11 +1,12 @@
-# app.py
-
 import streamlit as st
 import re
 from utils import ask_gemini_via_api
+from utils import apply_custom_css
+
 
 # UI Setup
 st.set_page_config(page_title="TalentScout - Hiring Assistant", layout="centered")
+apply_custom_css()
 st.markdown("""
     <style>
         .chat-container {
@@ -119,18 +120,46 @@ if st.session_state.step < len(questions):
                 st.session_state.step += 1
             st.rerun()
 
-# Generate tech questions
+# After collecting all candidate info
 if st.session_state.step == len(questions):
-    tech_stack = st.session_state.responses.get("Tech Stack", "")
-    prompt = f"""
-        You're an expert interviewer. Generate 3 to 5 technical interview questions for a candidate skilled in: {tech_stack}.
-    """
-    response = ask_gemini_via_api(prompt)
-    st.session_state.chat.append(("assistant", "Here are your technical questions:"))
-    st.session_state.chat.append(("assistant", response))
-    st.session_state.step += 1
-    st.rerun()
 
-# End
-if st.session_state.step > len(questions):
-    st.markdown("<div style='text-align:center;'>🎉 Thank you for using TalentScout!</div>", unsafe_allow_html=True)
+    tech_stack = st.session_state.responses["Tech Stack"]
+
+    if "generated_questions" not in st.session_state:
+        with st.chat_message("assistant"):
+            st.markdown("✅ Thank you for sharing your details!")
+            st.markdown("🎯 Generating technical questions based on your tech stack...")
+
+        prompt = f"""You're an expert technical interviewer. Generate 5 technical questions (1-2 sentences each) to evaluate a candidate skilled in: {tech_stack}. Number each question."""
+        questions_output = ask_gemini_via_api(prompt)
+        st.session_state.generated_questions = questions_output
+        st.session_state.chat.append(("assistant", questions_output))
+        st.rerun()
+    else:
+        with st.chat_message("assistant"):
+            st.markdown("🧠 Here are your technical questions:")
+            st.markdown(st.session_state.generated_questions)
+
+        user_input = st.chat_input("You can answer, ask follow-up questions, or type 'more' for new questions...")
+
+        if user_input:
+            st.session_state.chat.append(("user", user_input))
+
+            if user_input.lower().strip() == "more":
+                more_prompt = f"""Generate 5 more advanced questions for a candidate skilled in {tech_stack}. Avoid repeating earlier questions."""
+                new_questions = ask_gemini_via_api(more_prompt)
+                st.session_state.generated_questions += "\n" + new_questions
+                st.session_state.chat.append(("assistant", new_questions))
+                st.rerun()
+            else:
+                # Treat user input as an answer or follow-up
+                reply_prompt = f"""The candidate has been asked: {st.session_state.generated_questions}
+They responded with: {user_input}
+Give a helpful, professional, and friendly response or follow-up."""
+                response = ask_gemini_via_api(reply_prompt)
+                st.session_state.chat.append(("assistant", response))
+                st.rerun()
+
+# # End
+# if st.session_state.step > len(questions):
+#     st.markdown("<div style='text-align:center;'>🎉 Thank you for using TalentScout!</div>", unsafe_allow_html=True)
