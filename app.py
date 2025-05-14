@@ -1,10 +1,10 @@
 import streamlit as st
 import re
-from utils import ask_gemini_via_api, apply_custom_css, store_user_data
+from utils import ask_gemini_via_api,  store_user_data
 
 # Page Setup
 st.set_page_config(page_title="TalentScout - Hiring Assistant", layout="centered")
-apply_custom_css()
+# apply_custom_css()
 
 # Custom CSS
 st.markdown("""
@@ -61,6 +61,11 @@ st.markdown("""
             border: none;
             border-radius: 5px;
             cursor: pointer;
+        }
+        @media only screen and (max-width: 768px) {
+            *{
+                color: black !important;
+            }
         }
     </style>
 """, unsafe_allow_html=True)
