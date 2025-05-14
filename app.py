@@ -11,6 +11,7 @@ st.markdown("""
     <style>
         .block-container {
             background-color: #F5F7FA;
+            width: 100%;
         }
         .chat-container {
             background-color: #FFFFFF;
@@ -66,6 +67,11 @@ st.markdown("""
             *{
                 color: black !important;
             }
+            button {
+                background-color: #007BFF;
+                color: white;
+            }
+        
         }
     </style>
 """, unsafe_allow_html=True)
