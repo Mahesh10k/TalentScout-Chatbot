@@ -2,16 +2,18 @@ import streamlit as st
 import re
 from utils import ask_gemini_via_api, apply_custom_css, store_user_data
 
-# UI Setup
+# Page Setup
 st.set_page_config(page_title="TalentScout - Hiring Assistant", layout="centered")
 apply_custom_css()
+
+# Custom CSS
 st.markdown("""
     <style>
-        .block-container{
-            background-color: #E7F2E4;
+        .block-container {
+            background-color: #F5F7FA;
         }
         .chat-container {
-            background-color: #B6B09F;
+            background-color: #FFFFFF;
             padding: 1rem;
             border-radius: 1rem;
             max-width: 700px;
@@ -19,35 +21,53 @@ st.markdown("""
             margin-bottom: 2rem;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        .user-msg {
-            background-color: #8DD8FF;
-            color:black;
-            padding: 0.6rem 1rem;
-            border-radius: 1rem;
-            margin-bottom: 0.5rem;
-            align-self: flex-end;
-            max-width: 70%;
-            float:right;
-        }
-        .bot-msg {
-            background-color: #FFE1E0;
-            color: black;
-            padding: 0.6rem 1rem;
-            border-radius: 1rem;
-            margin-bottom: 0.5rem;
-            align-self: flex-start;
-            max-width: 70%;
-        }
-        .msg-wrapper {
+        .user-msg, .bot-msg {
             display: flex;
-            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+        .user-msg {
+            justify-content: flex-end;
+        }
+        .user-msg .msg-content, .bot-msg .msg-content {
+            padding: 0.6rem 1rem;
+            border-radius: 1rem;
+            max-width: 70%;
+            line-height: 1.5;
+            font-size: 15px;
+        }
+        .user-msg .msg-content {
+            background-color: #DCF8C6;
+            color: #000;
+        }
+        .bot-msg .msg-content {
+            background-color: #E4E6EB;
+            color: #000;
+        }
+        .profile-pic {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+        }
+        input[type="text"] {
+            background-color: white;
+            color: black;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
     </style>
 """, unsafe_allow_html=True)
 
 st.markdown("<h2 style='text-align:center;'> TalentScout - AI Hiring Assistant</h2>", unsafe_allow_html=True)
 
-# Questions for user info
+# Input questions
 questions = [
     ("Full Name", "What's your full name?"),
     ("Email", "Your email address? (Only Gmail is accepted)"),
@@ -58,53 +78,65 @@ questions = [
     ("Tech Stack", "Mention your tech stack (languages, tools, frameworks):")
 ]
 
-# Validation functions
-def is_valid_email(email):
-    return re.fullmatch(r"^[\w\.-]+@gmail\.com$", email)
+# Validators
+def is_valid_email(email): return re.fullmatch(r"^[\w\.-]+@gmail\.com$", email)
+def is_valid_phone(phone): return re.fullmatch(r"[6-9]\d{9}", phone)
+def is_valid_name(name): return re.fullmatch(r"[A-Za-z ]+$", name.strip())
+def is_non_empty(text): return bool(text.strip())
 
-def is_valid_phone(phone):
-    return re.fullmatch(r"[6-9]\d{9}", phone)
-
-def is_valid_name(name):
-    return re.fullmatch(r"[A-Za-z ]+$", name.strip())
-
-def is_non_empty(text):
-    return bool(text.strip())
-
-# Streamlit session state
+# Session states
 if "step" not in st.session_state:
     st.session_state.step = 0
 if "responses" not in st.session_state:
     st.session_state.responses = {}
 if "chat" not in st.session_state:
     st.session_state.chat = []
+if "generated_questions" not in st.session_state:
+    st.session_state.generated_questions = []  
+if "answer_index" not in st.session_state:
+    st.session_state.answer_index = 0
+if "user_answers" not in st.session_state:
+    st.session_state.user_answers = []
+if "feedback_given" not in st.session_state:
+    st.session_state.feedback_given = False
 
-# Render Chat History
+# Chat renderer
 def render_chat():
     st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
     for role, msg in st.session_state.chat:
-        css_class = "bot-msg" if role == "assistant" else "user-msg"
-        st.markdown(f"<div class='{css_class}'>{msg}</div>", unsafe_allow_html=True)
+        if role == "assistant":
+            st.markdown(f"""
+                <div class='bot-msg'>
+                    <img src='https://cdn-icons-png.flaticon.com/512/4712/4712109.png' class='profile-pic'/>
+                    <div class='msg-content'>{msg}</div>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <div class='user-msg'>
+                    <div class='msg-content'>{msg}</div>
+                    <img src='https://cdn-icons-png.flaticon.com/512/847/847969.png' class='profile-pic'/>
+                </div>
+            """, unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 render_chat()
 
-# Input questions
+# Step 1: Collect user data
 if st.session_state.step < len(questions):
     key, question = questions[st.session_state.step]
-
     with st.form(key="input_form", clear_on_submit=True):
         user_input = st.text_input(question)
         submitted = st.form_submit_button("Submit")
 
         if submitted:
             user_input = user_input.strip()
+            error = None
 
             if user_input.lower() in ["exit", "quit", "bye"]:
                 st.session_state.chat.append(("assistant", "👋 Thank you for your time. Goodbye!"))
                 st.rerun()
 
-            error = None
             if key == "Email" and not is_valid_email(user_input):
                 error = "Please enter a valid Gmail address."
             elif key == "Phone" and not is_valid_phone(user_input):
@@ -123,60 +155,49 @@ if st.session_state.step < len(questions):
                 st.session_state.step += 1
             st.rerun()
 
-# After collecting user info
-if st.session_state.step == len(questions):
+# Step 2: Generate questions
+elif not st.session_state.get("generated_questions"):
     tech_stack = st.session_state.responses["Tech Stack"]
+    st.session_state.chat.append(("assistant", "Generating technical questions based on your tech stack..."))
+    prompt = f"""You're a technical interviewer. Generate 5 technical questions to evaluate a candidate skilled in: {tech_stack}. Number each question."""
+    questions_output = ask_gemini_via_api(prompt)
+    questions_list = re.findall(r"\d+\.\s*(.*)", questions_output.strip())
+    st.session_state.generated_questions = questions_list
+    st.session_state.chat.append(("assistant", "Here are your technical questions:\n" + "\n".join([f"{i+1}. {q}" for i, q in enumerate(questions_list)])))
+    st.rerun()
 
-    if "generated_questions" not in st.session_state:
-        with st.chat_message("assistant"):
-            st.markdown("Thank you for sharing your details!")
-            st.markdown("Generating technical questions based on your tech stack...")
+# Step 3: Ask each question
+elif st.session_state.answer_index < len(st.session_state.generated_questions):
+    current_q = st.session_state.generated_questions[st.session_state.answer_index]
+    st.markdown(f"**Question {st.session_state.answer_index + 1}:** {current_q}")
+    user_input = st.chat_input("Your answer:")
 
-        prompt = f"""You're a technical interviewer. Generate 5 technical questions (1-2 sentences) to evaluate a candidate skilled in: {tech_stack}. Number each question."""
-        questions_output = ask_gemini_via_api(prompt)
-        st.session_state.generated_questions = questions_output
-        st.session_state.chat.append(("assistant", questions_output))
+    if user_input:
+        st.session_state.chat.append(("assistant", current_q))
+        st.session_state.chat.append(("user", user_input))
+        st.session_state.user_answers.append((current_q, user_input))
+        st.session_state.answer_index += 1
         st.rerun()
 
-    else:
-        with st.chat_message("assistant"):
-            st.markdown("Here are your technical questions:")
-            st.markdown(st.session_state.generated_questions)
+# Step 4: Give feedback after all answers
+elif not st.session_state.feedback_given:
+    answer_summary = "\n".join([f"Q: {q}\nA: {a}" for q, a in st.session_state.user_answers])
+    feedback_prompt = f"""Evaluate the following technical interview responses:\n\n{answer_summary}\n\nGive a summary of strengths, weaknesses, and whether the candidate is suitable for the role."""
+    final_feedback = ask_gemini_via_api(feedback_prompt)
+    st.session_state.chat.append(("assistant", f"📊 Final Feedback:\n\n{final_feedback}"))
+    st.session_state.feedback_given = True
 
-        user_input = st.chat_input("Reply to questions, type 'more' for advanced ones, or continue...")
+    mongo_data = {
+        "user_info": st.session_state.responses,
+        "tech_stack": st.session_state.responses["Tech Stack"],
+        "generated_questions": st.session_state.generated_questions,
+        "user_answers": st.session_state.user_answers,
+        "conversation": st.session_state.chat,
+        "final_feedback": final_feedback
+    }
+    store_user_data(mongo_data)
+    st.rerun()
 
-        if user_input:
-            st.session_state.chat.append(("user", user_input))
-
-            if user_input.lower().strip() == "more":
-                more_prompt = f"""Generate 5 more advanced technical questions for a candidate skilled in {tech_stack}. Avoid repeating earlier ones."""
-                new_questions = ask_gemini_via_api(more_prompt)
-                st.session_state.generated_questions += "\n" + new_questions
-                st.session_state.chat.append(("assistant", new_questions))
-                st.rerun()
-            else:
-                reply_prompt = f"""The candidate was asked:\n{st.session_state.generated_questions}\nThey responded with:\n{user_input}\nGive a friendly, helpful follow-up."""
-                response = ask_gemini_via_api(reply_prompt)
-                st.session_state.chat.append(("assistant", response))
-                st.rerun()
-
-        # Final feedback once chat ends (optional trigger)
-        if not st.chat_input("Type anything..."):  # Or trigger another way
-            if "feedback_given" not in st.session_state:
-                feedback_prompt = f"""Here are the candidate's answers and responses:\n{st.session_state.chat}
-Provide final technical feedback including strengths, weaknesses, and overall suitability."""
-                final_feedback = ask_gemini_via_api(feedback_prompt)
-                st.session_state.chat.append(("assistant", f"Final Feedback:\n\n{final_feedback}"))
-                st.session_state.feedback_given = True
-
-                # Save to MongoDB
-                mongo_data = {
-                    "user_info": st.session_state.responses,
-                    "tech_stack": tech_stack,
-                    "generated_questions": st.session_state.generated_questions,
-                    "conversation": st.session_state.chat,
-                    "final_feedback": final_feedback
-                }
-
-                store_user_data(mongo_data)
-                st.rerun()
+else:
+    st.success("✅ Interview process completed.")
+    st.info("Thank you for using TalentScout.")

@@ -18,6 +18,7 @@ def apply_custom_css():
             .element-container {
                 padding: 0 !important;
                 margin: 0 !important;
+                color: black !important;
             }
             .stChatInput input {
                 font-size: 16px !important;
@@ -32,7 +33,7 @@ def apply_custom_css():
             word-wrap: break-word;
         }
         .stMarkdown p, .stMarkdown span {
-            color: #000000 !important;
+            color: black !important;
         }
         .main .block-container {
             padding-left: 1rem;
