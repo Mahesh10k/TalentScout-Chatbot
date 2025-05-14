@@ -54,6 +54,7 @@ st.markdown("""
         input[type="text"] {
             background-color: white;
             color: black;
+            border: 1px solid #ccc;
         }
         button {
             background-color: #007BFF;
