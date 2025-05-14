@@ -61,16 +61,16 @@ st.markdown("""
             padding: 10px 20px;
             border: none;
             border-radius: 5px;
-            cursor: pointer;
+            # cursor: pointer;
         }
         @media only screen and (max-width: 768px) {
             *{
                 color: black !important;
             }
             button {
-                background-color: #007BFF;
                 color: white;
             }
+            
         
         }
     </style>
