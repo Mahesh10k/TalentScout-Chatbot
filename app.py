@@ -9,9 +9,9 @@ st.set_page_config(page_title="TalentScout - Hiring Assistant", layout="centered
 # Custom CSS
 st.markdown("""
     <style>
+        
         .block-container {
             background-color: #F5F7FA;
-            width: 100%;
         }
         .chat-container {
             background-color: #FFFFFF;
@@ -69,6 +69,9 @@ st.markdown("""
             }
             button {
                 color: white;
+            }
+            .st-emotion-cache-13ln4jf.ea3mdgi5 {
+                width:100vw;
             }
             
         
