@@ -1,10 +1,13 @@
 import requests
 import os
 import streamlit as st
-
 from dotenv import load_dotenv
+from pymongo import MongoClient
+
+# Load environment variables
 load_dotenv()
 
+# Gemini API setup
 API_KEY = os.getenv("GEMINI_API_KEY")
 BASE_URL = os.getenv("GEMINI_API_URL") + API_KEY
 
@@ -61,3 +64,15 @@ def ask_gemini_via_api(prompt):
         return content["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
         return f"⚠️ Error fetching response: {e}"
+
+# MongoDB integration
+MONGO_URI = os.getenv("MONGO_URI")
+
+def store_user_data(data):
+    try:
+        client = MongoClient(MONGO_URI)
+        db = client["Talent_Scout"]
+        collection = db["interviews"]
+        collection.insert_one(data)
+    except Exception as e:
+        st.error(f"❌ Failed to save to MongoDB: {e}")
