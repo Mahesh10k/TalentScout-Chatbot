@@ -3,7 +3,7 @@ import re
 from utils import ask_gemini_via_api,  store_user_data
 
 # Page Setup
-st.set_page_config(page_title="TalentScout - Hiring Assistant", layout="centered")
+st.set_page_config(page_title="TalentScout - Hiring Assistant", layout="wide")
 # apply_custom_css()
 
 # Custom CSS
@@ -55,14 +55,17 @@ st.markdown("""
             background-color: white;
             color: black;
             border: 1px solid #ccc;
+            padding: 10px;
+            font-size: 15px;
+            border-radius: 5px;
+            width: 80%;
         }
-        button {
+        div.stButton > button:first-child {
             background-color: #007BFF;
             color: white;
-            padding: 10px 20px;
             border: none;
+            padding: 10px;
             border-radius: 5px;
-            # cursor: pointer;
         }
         @media only screen and (max-width: 768px) {
             *{
@@ -71,8 +74,9 @@ st.markdown("""
             button {
                 color: white;
             }
-            .st-emotion-cache-13ln4jf.ea3mdgi5 {
-                width:100vw;
+            div.stButton > button:first-child {
+                background-color: blue;  
+                color: black;
             }
             
         
